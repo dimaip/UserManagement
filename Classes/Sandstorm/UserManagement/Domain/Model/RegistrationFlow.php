@@ -57,6 +57,25 @@ class RegistrationFlow
     protected $activationTokenTimeout;
 
     /**
+     * @var string
+     * @ORM\Column(nullable=TRUE)
+     */
+    protected $confirmationToken;
+
+    /**
+     * @var \DateTime
+     * @ORM\Column(nullable=TRUE)
+     */
+    protected $confirmationTokenValidUntil;
+
+    /**
+     * @var string
+     * @Flow\Transient
+     * @Flow\InjectConfiguration(path="confirmationTokenTimeout")
+     */
+    protected $confirmationTokenTimeout;
+
+    /**
      * @param $cause int The cause of the object initialization.
      * @see http://flowframework.readthedocs.org/en/stable/TheDefinitiveGuide/PartIII/ObjectManagement.html#lifecycle-methods
      * @throws Exception
@@ -65,6 +84,7 @@ class RegistrationFlow
     {
         if ($cause === ObjectManagerInterface::INITIALIZATIONCAUSE_CREATED) {
             $this->generateActivationToken();
+            $this->generateConfirmationToken();
         }
     }
 
@@ -99,6 +119,28 @@ class RegistrationFlow
         }
 
         return $this->activationTokenValidUntil->getTimestamp() > time();
+    }
+
+    /**
+     * Generate a new confirmation token
+     * @throws Exception If the user has an account already
+     */
+    public function generateConfirmationToken()
+    {
+        $this->confirmationToken = Algorithms::generateRandomString(30);
+        $this->confirmationTokenValidUntil = (new \DateTime())->add(\DateInterval::createFromDateString($this->confirmationTokenTimeout));
+    }
+
+    /**
+     * Check if the user has a valid confirmation token.
+     * @return bool
+     */
+    public function hasValidConfirmationToken()
+    {
+        if ($this->confirmationTokenValidUntil == NULL) {
+            return FALSE;
+        }
+        return $this->confirmationTokenValidUntil->getTimestamp() > time();
     }
 
     /**
@@ -152,5 +194,13 @@ class RegistrationFlow
     public function getActivationToken()
     {
         return $this->activationToken;
+    }
+
+    /**
+     * @return string
+     */
+    public function getConfirmationToken()
+    {
+        return $this->confirmationToken;
     }
 }

@@ -50,6 +50,24 @@ class RegistrationController extends ActionController
      */
     protected $subjectActivation;
 
+    /**
+     * @var string
+     * @Flow\InjectConfiguration(path="email.confirmationAddress")
+     */
+    protected $emailConfirmationAddress;
+
+    /**
+     * @var string
+     * @Flow\InjectConfiguration(path="email.confirmationName")
+     */
+    protected $emailConfirmationName;
+
+    /**
+     * @var string
+     * @Flow\InjectConfiguration(path="email.subjectConfirmation")
+     */
+    protected $subjectConfirmation;
+
 
     /**
      * @Flow\SkipCsrfProtection
@@ -82,7 +100,7 @@ class RegistrationController extends ActionController
             'ActivationToken',
             $this->subjectActivation,
             [$this->emailSenderAddress => $this->emailSenderName],
-            [$registrationFlow->getEmail()],
+            [$this->emailConfirmationAddress => $this->emailConfirmationName],
             [
                 'activationLink' => $activationLink,
                 'applicationName' => $this->emailSenderName,
@@ -106,13 +124,51 @@ class RegistrationController extends ActionController
         $registrationFlow = $this->registrationFlowRepository->findOneByActivationToken($token);
         if (!$registrationFlow) {
             $this->view->assign('tokenNotFound', true);
-
             return;
         }
 
         if (!$registrationFlow->hasValidActivationToken()) {
             $this->view->assign('tokenTimeout', true);
+            return;
+        }
 
+        // Send out a confirmation mail
+        $confirmationLink = $this->uriBuilder->reset()->setCreateAbsoluteUri(TRUE)->uriFor(
+            'confirmAccount',
+            ['token' => $registrationFlow->getConfirmationToken()],
+            'Registration');
+
+        $this->emailService->sendTemplateBasedEmail(
+            'ConfirmationToken',
+            $this->subjectActivation,
+            [$this->emailSenderAddress => $this->emailSenderName],
+            [$registrationFlow->getEmail()],
+            [
+                'confirmationLink' => $confirmationLink,
+                'applicationName' => $this->emailSenderName,
+                'registrationFlow' => $registrationFlow,
+                // BaseUri can be used to embed resources (images) into the email
+                'baseUri' => htmlspecialchars($this->controllerContext->getRequest()->getHttpRequest()->getBaseUri())
+            ]
+        );
+
+        $this->view->assign('success', true);
+    }
+
+    /**
+     * @param string $token
+     */
+    public function confirmAccountAction($token)
+    {
+        /* @var $registrationFlow \Sandstorm\UserManagement\Domain\Model\RegistrationFlow */
+        $registrationFlow = $this->registrationFlowRepository->findOneByConfirmationToken($token);
+        if (!$registrationFlow) {
+            $this->view->assign('tokenNotFound', true);
+            return;
+        }
+
+        if (!$registrationFlow->hasValidConfirmationToken()) {
+            $this->view->assign('tokenTimeout', true);
             return;
         }
 

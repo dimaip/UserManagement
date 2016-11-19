@@ -2,6 +2,8 @@ Sandstorm:
   UserManagement:
     # Validity timespan for the activation token for newly registered users.
     activationTokenTimeout: '2 days'
+    # Validity timespan for the confirmation token.
+    confirmationTokenTimeout: '8 weeks'
     # Validity timespan for the token used to reset passwords.
     resetPasswordTokenTimeout: '4 hours'
     # The message that appears if a user could not be logged in.
@@ -15,6 +17,9 @@ Sandstorm:
       # Sender name - will be merged with senderAddress to something
       # like "Sandstorm Usermanagement Package <test@example.com>"
       senderName: 'Sandstorm Usermanagement Package'
+      confirmationAddress: 'test@example.com'
+      confirmationName: 'Administrator'
+      subjectConfirmation: 'Please confirm the account'
       # Subject line for the account confirmation email
       subjectActivation: 'Please confirm your account'
       # Subject line for the password reset email
